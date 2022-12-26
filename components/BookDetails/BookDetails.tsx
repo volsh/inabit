@@ -89,7 +89,10 @@ const BookDetails = (props: BookListItemProps) => {
       <CardMedia
         component="img"
         height="194"
-        image={imageLinks.large || imageLinks.medium || imageLinks.extraLarge}
+        image={imageLinks.large || imageLinks.medium || imageLinks.extraLarge ||
+          imageLinks.small ||
+          imageLinks.thumbnail ||
+          imageLinks.smallThumbnail}
         alt={`${title} image`}
       />
       <CardContent>
