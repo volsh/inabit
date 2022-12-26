@@ -1,7 +1,8 @@
-import {useState} from "react";
+import {ChangeEvent, useState} from "react";
 import {useEffect} from "react";
 import {useRef} from "react";
 import BookListItem from "../BookListItem/BookListItem";
+import TextField from "@mui/material/TextField";
 import List from "@mui/material/List";
 import Stack from "@mui/material/Stack";
 import Pagination from "@mui/material/Pagination";
@@ -11,9 +12,14 @@ import BookDetails from "../BookDetails/BookDetails";
 import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import CloseIcon from "@mui/icons-material/Close";
+import useDebounce from "../../hooks/useDebounce";
 const BOOKS_PER_PAGE = 30;
 
 const BookList = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isLoading, setLoading] = useState(false);
+
+  const debouncedTerm = useDebounce(searchTerm);
   const [books, setBooks] = useState<Array<BookResponse>>();
   const [page, setPage] = useState(0);
   const [activeBook, setActiveBook] = useState<string | undefined>();
@@ -24,19 +30,26 @@ const BookList = () => {
     {[key: string]: boolean} | undefined
   >();
   const totalBooks = useRef(0);
+  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
   useEffect(() => {
+    setLoading(true);
     fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=pride+prejudice&projection=lite&startIndex=${page}&maxResults=${BOOKS_PER_PAGE}`
+      `https://www.googleapis.com/books/v1/volumes?q=${debouncedTerm}&projection=lite&startIndex=${page}&maxResults=${BOOKS_PER_PAGE}`
     )
       .then((res) => res.json())
       .then((books: BooksResponse) => {
         if (!totalBooks.current) {
           totalBooks.current = books.totalItems;
         }
+        setLoading(false);
         setBooks(books.items);
       })
-      .catch();
-  }, [page]);
+      .catch((e) => {
+        setLoading(false);
+      });
+  }, [debouncedTerm, page]);
 
   useEffect(() => {
     if (activeBook) {
@@ -72,7 +85,15 @@ const BookList = () => {
   };
   return (
     <>
-      {books ? (
+      <TextField
+        label="Search"
+        variant="standard"
+        margin="normal"
+        onChange={handleSearch}
+      />
+      {isLoading ? (
+        <CircularProgress />
+      ) : (
         <>
           <Stack spacing={2}>
             <Pagination
@@ -83,7 +104,7 @@ const BookList = () => {
             <List
               sx={{width: "100%", maxWidth: 360, bgcolor: "background.paper"}}
             >
-              {books.map((book) => (
+              {books?.map((book) => (
                 <BookListItem
                   key={book.id}
                   {...book.volumeInfo}
@@ -137,8 +158,6 @@ const BookList = () => {
             </Box>
           </Modal>
         </>
-      ) : (
-        <CircularProgress />
       )}
     </>
   );
